@@ -34,7 +34,7 @@ uint8_t rx_data_counter = 0;
 
 typedef struct
 {
-	char TX_GSM[40];
+	char TX_GSM[45];
 }TX_GCM_COMAND;
 
 TX_GCM_COMAND TX_GCM_COMAND_t;
@@ -64,28 +64,28 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityNormal3,
 };
 /* Definitions for gsm_task */
 osThreadId_t gsm_taskHandle;
 const osThreadAttr_t gsm_task_attributes = {
   .name = "gsm_task",
   .stack_size = 400 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityNormal3,
 };
 /* Definitions for parsingGSMcom */
 osThreadId_t parsingGSMcomHandle;
 const osThreadAttr_t parsingGSMcom_attributes = {
   .name = "parsingGSMcom",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityNormal3,
 };
 /* Definitions for resoursesMonito */
 osThreadId_t resoursesMonitoHandle;
 const osThreadAttr_t resoursesMonito_attributes = {
   .name = "resoursesMonito",
   .stack_size = 400 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityNormal3,
 };
 /* Definitions for command_from_GCM */
 osMessageQueueId_t command_from_GCMHandle;
@@ -112,65 +112,56 @@ void StartResoursesMonitor(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+// Налаштування і ініціалізація
+char AT_COMAND[] = "AT\n\r"; 				// Must return OK
+char AT_COMAND_ATE0[] = "ATE0\n\r";			// Виключити ехо
+char AT_COMAND_ATE1[] = "ATE1\n\r";			// Включити ехо
+char AT_COMAND_TURN_OFF_ECHO[] = "ATV0\n\r";	// Тільки відповідь
+char AT_COMAND_TURN_ON_ECHO[] = "ATV1\n\r";	// Повна відповідь з ехо
+char AT_COMAND_АОН[] = "AT+CLIP=1\n\r";    // ??????
+//char AT_COMAND_
 
+// ЗВІНКИ
+char AT_COMAND_MAKE_CALL_ON_NUMBER[] = "ATD+ 380931482354;\n\r";     // Зробити звінок по номеру
+char AT_COMMAND_PICK_UP_PHONE[] = "ATA\n\r";			// Підняти трубку
+char AT_COMAND_END_CALL[] = "ATH0\n\r";				// Повісити трубку
+//	char AT_COMAND_
+//	char AT_COMAND_
+//	char AT_COMAND_
+
+// SMS
+//	char AT_COMAND_
+//	char AT_COMAND_
+//	char AT_COMAND_
+char AT_COMAND_AT_CLIP[] = "AT+CLIP=1\n\r"; 			// Включення визначника вхідного номера
+char AT_COMAND_AT_COPS[] = "AT+COPS?\n\r"; 		// Інформація про оператора. Вертає +COPS: 0,0,»MTS-RUS»  OK
+char AT_COMAND_AT_CPAS[] = "AT+CPAS\n\r";			// Інформація про стан модуля 0 – готов к работе, 	2 – неизвестно, 3 – входящий звонок, 4 – голосовое соединение
+char AT_COMAND_AT_CSQ[] = "AT+CSQ\n\r";				// Рівень сигналу
+
+// --------------------------------------------------------------------------------------
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	//int g = 999;   Отримання одного байту від GSM МОДУЛЯ
-
-
-	if(huart == &huart1)											// Which uart generate Callback function
+	if(huart == &huart1)											// Which UART generate Callback function
 	{
 		// '\r' -
 		// '\n' - 10
-		if((str[0] == 0x0D) || (rx_data_counter >= sizeof(uart_rx_data)))   		// Detect '\0' Null or  data too long
+		if((str[0] == 0x0D) || (rx_data_counter >= sizeof(uart_rx_data)))
 		{
 			flag_command_received = true;                           // Data is ready
 			rx_data_counter = 0;
 
-			// WORK WITC RECEIVED COMMAND
-			char OK_str[] = "OK";
-			if((strstr(uart_rx_data, OK_str)) != NULL)		// Work
+			// Transmeet receiver data into queue for parsing,
+			BaseType_t xHigherPriorityTaskWoken;
+			xHigherPriorityTaskWoken = pdFALSE;
+			if(xQueueSendToFrontFromISR(command_from_GCMHandle, &uart_rx_data, &xHigherPriorityTaskWoken ) != pdTRUE)
 			{
-				int hhdd = 888;
+				int fff = 999; // ERROR for debug
 			}
 
-			if((strstr(uart_rx_data, "+380931482354")) != NULL)  // Work
-			{
-				int hhdddd = 888;
-			}
-
-
-
-
-
-			// 1. Записати дані в чергу
-//			BaseType_t xHigherPriorityTaskWoken;
-//			if(xQueueSendFromISR( command_from_GCMHandle, &uart_rx_data, &xHigherPriorityTaskWoken) != pdTRUE)
-//			{
-//				// error
-//				int hhhh = 999;
-//			}
-			// xQueueOverwrite( TX_GCM_COMAND_t, &uart_rx_data );
-			// 2. Виставити семафор
-
-			//memcpy(TX_GCM_COMAND_t, uart_rx_data, sizeof(uart_rx_data));
-
-//			else
-//			{
-//				int gfff = 999;
-//				// error
-//			}
-
-
-			//Передача даних через чергу в потік, де буде аналізуватися комінди
 			memset(uart_rx_data, 0, sizeof(uart_rx_data));
-
-
-
-
 			HAL_UART_Receive_IT(&huart1, str, 1);
 		}
-		else
+		else			// Receive one byte
 		{
 			flag_command_received = false;							// Receive data
 			uart_rx_data[rx_data_counter] = str[0];					// Save data in global buffer
@@ -178,44 +169,40 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			rx_data_counter ++;
 		}
 	}
-
-
-
-		//////////////////////////////////////////////////////
-//		uint8_t i = 0;
-//				uint8_t sizeo_of_RX_buffer = sizeof(rx_response_from_gsm_module)-1;
-//
-//				do
-//				{
-//					HAL_UART_Receive_IT(&huart1, &rx_uart, 1);
-//					rx_response_from_gsm_module[i] = rx_uart;
-//					i++;
-//				}while((rx_uart != 13) && (i <= sizeo_of_RX_buffer ));    // 0x0D  or 13
-//				i = 0;
-		////////////////////////////////////////////////////////
-
-		// Аналіз команди яка прийшла
-
-
-
-//		HAL_UART_Receive_IT(&huart1, &rx_uart, 1);
-
-
-
 }
-///////////////////////////////////////////////////////////////////////////////
-// AT Commands
-
-
 //-------------------------------------------------------------------------------
-bool gsm_send_at_command(char *cmd)
+bool gsm_send_at_command(char *cmd, uint8_t size)
 {
+	HAL_UART_Transmit_IT(&huart1, cmd, size);
+
 
 	return true;
 }
 //-------------------------------------------------------------------------------
 bool init_gsm_module(void)
 {
+	//HAL_UART_Transmit(&huart1, AT_COMAND, 10, 1000);
+
+	gsm_send_at_command(AT_COMAND, sizeof(AT_COMAND));     // TEST
+	gsm_send_at_command(AT_COMAND_ATE0, sizeof(AT_COMAND_ATE0));
+	gsm_send_at_command(AT_COMAND_AT_CLIP, sizeof(AT_COMAND_AT_CLIP));
+	gsm_send_at_command(AT_COMAND_АОН, sizeof(AT_COMAND_АОН));
+	gsm_send_at_command(AT_COMAND_TURN_OFF_ECHO, sizeof(AT_COMAND_TURN_OFF_ECHO));
+
+//	HAL_UART_Transmit_IT(&huart1, AT_COMAND, sizeof(AT_COMAND));
+//	osDelay(100);
+//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_ATE0, sizeof(AT_COMAND_ATE0));
+//	osDelay(100);
+//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_AT_CLIP, sizeof(AT_COMAND_AT_CLIP));
+//	osDelay(100);
+//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_АОН, sizeof(AT_COMAND_АОН));
+//	osDelay(100);
+//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_TURN_OFF_ECHO, sizeof(AT_COMAND_TURN_OFF_ECHO));
+
+
+
+	// чикати тут поки модуль не ініціалізіється і не буде готовий до роботи
+
 
 	return true;
 }
@@ -347,8 +334,8 @@ int main(void)
 
 
 //  HAL_UART_Receive_IT(&huart1, &rx_uart, 1);
-  HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(USART1_IRQn);
+  //HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+ // HAL_NVIC_EnableIRQ(USART1_IRQn);
 
   HAL_UART_Receive_IT(&huart1, str, 1);
   /* USER CODE END RTOS_EVENTS */
@@ -501,78 +488,16 @@ void Start_gsm_task(void *argument)
   /* USER CODE BEGIN Start_gsm_task */
   /* Infinite loop */
 
-	//HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
-	//HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
-
-	// 1. Надсилання команди АТ
-	osDelay(3000);
-
-	// Налаштування і ініціалізація
-	char AT_COMAND[] = "AT\n\r"; 				// Must return OK
-	char AT_COMAND_ATE0[] = "ATE0\n\r";			// Виключити ехо
-	char AT_COMAND_ATE1[] = "ATE1\n\r";			// Включити ехо
-	char AT_COMAND_TURN_OFF_ECHO[] = "ATV0\n\r";	// Тільки відповідь
-	char AT_COMAND_TURN_ON_ECHO[] = "ATV1\n\r";	// Повна відповідь з ехо
-	char AT_COMAND_АОН[] = "AT+CLIP=1\n\r";    // ??????
-	//char AT_COMAND_
-
-	// ЗВІНКИ
-
-	char AT_COMAND_MAKE_CALL_ON_NUMBER[] = "ATD+ 380931482354;\n\r";     // Зробити звінок по номеру
-	char AT_COMMAND_PICK_UP_PHONE[] = "ATA\n\r";			// Підняти трубку
-	char AT_COMAND_END_CALL[] = "ATH0\n\r";				// Повісити трубку
-//	char AT_COMAND_
-//	char AT_COMAND_
-//	char AT_COMAND_
-
-	// SMS
-//	char AT_COMAND_
-//	char AT_COMAND_
-//	char AT_COMAND_
-
-
-	char AT_COMAND_AT_CLIP[] = "AT+CLIP=1\n\r"; 			// Включення визначника вхідного номера
-	char AT_COMAND_AT_COPS[] = "AT+COPS?\n\r"; 		// Інформація про оператора. Вертає +COPS: 0,0,»MTS-RUS»  OK
-	char AT_COMAND_AT_CPAS[] = "AT+CPAS\n\r";			// Інформація про стан модуля 0 – готов к работе, 	2 – неизвестно, 3 – входящий звонок, 4 – голосовое соединение
-	char AT_COMAND_AT_CSQ[] = "AT+CSQ\n\r";				// Рівень сигналу
-
-
-
-	HAL_UART_Transmit(&huart1, AT_COMAND, 10, 1000);
-
-	HAL_UART_Transmit_IT(&huart1, AT_COMAND, sizeof(AT_COMAND));
-	osDelay(100);
-	HAL_UART_Transmit_IT(&huart1, AT_COMAND_ATE0, sizeof(AT_COMAND_ATE0));
-	osDelay(100);
-	HAL_UART_Transmit_IT(&huart1, AT_COMAND_AT_CLIP, sizeof(AT_COMAND_AT_CLIP));
-	osDelay(100);
-	HAL_UART_Transmit_IT(&huart1, AT_COMAND_АОН, sizeof(AT_COMAND_АОН));
-	osDelay(100);
-	HAL_UART_Transmit_IT(&huart1, AT_COMAND_TURN_OFF_ECHO, sizeof(AT_COMAND_TURN_OFF_ECHO));
-	osDelay(3000);
-
-//
-//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_MAKE_CALL_ON_NUMBER, sizeof(AT_COMAND_MAKE_CALL_ON_NUMBER));			// Work !
-//	osDelay(100);
+	osDelay(5000);
+	init_gsm_module();
+	osDelay(1000);
 
   for(;;)
   {
 
-	  //HAL_UART_Transmit_IT(&huart1, AT_COMAND, sizeof(AT_COMAND));
-	  osDelay(5000);
+	  gsm_send_at_command(AT_COMAND, sizeof(AT_COMAND));     // TEST
+	  osDelay(1000);
 
-
-	 // HAL_UART_Transmit_IT(&huart1, AT_COMMAND_PICK_UP_PHONE, sizeof(AT_COMMAND_PICK_UP_PHONE));
-
-
-	  //HAL_UART_Transmit(&huart1, AT_COMAND, 10, 1000);
-//	  HAL_UART_Transmit_IT(&huart1, AT_COMAND_AT_COPS, sizeof(AT_COMAND_AT_COPS));
-//	  osDelay(1000);
-//
-//	  HAL_UART_Transmit_IT(&huart1, AT_COMAND_AT_CPAS, sizeof(AT_COMAND_AT_CPAS));
-//	  osDelay(1000);
-//
-//	  HAL_UART_Transmit_IT(&huart1, AT_COMAND_AT_CSQ, sizeof(AT_COMAND_AT_CSQ));
 
 
 
@@ -597,18 +522,20 @@ void StartParsingGSMCom(void *argument)
 	  if (xQueueReceive(command_from_GCMHandle, tx_gsm_data, 0) == pdTRUE)		// Read witch button was pressed
 	  {
 		  // Command was received
-		  int f = 1111;
 
 		  char OK_str[] = "OK";
-		  if((strstr(tx_gsm_data, OK_str)) != NULL)		// Work
+		  if((strstr(tx_gsm_data, OK_str)) != NULL)					// Works
 		  {
 			  int hhdd = 888;
 		  }
 
-		  if((strstr(tx_gsm_data, "+380931482354")) != NULL)  // Work
+		  if((strstr(tx_gsm_data, "+380931482354")) != NULL)  		// Works
 		  {
 			  int hhdddd = 888;
+			  //
 		  }
+
+
 	  }
 
     osDelay(1);
@@ -629,7 +556,12 @@ void StartResoursesMonitor(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+//	  char rx_buffer_at_comand[40] = "HELLO !";
+//	 //rx_buffer_at_comand memscpy();
+//	  xQueueOverwrite( command_from_GCMHandle, rx_buffer_at_comand );
+
+
+    osDelay(100);
   }
   /* USER CODE END StartResoursesMonitor */
 }
