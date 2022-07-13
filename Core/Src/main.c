@@ -113,18 +113,19 @@ void StartResoursesMonitor(void *argument);
 /* USER CODE BEGIN 0 */
 
 // Налаштування і ініціалізація
-char AT_COMAND[] = "AT\n\r"; 				// Must return OK
-char AT_COMAND_ATE0[] = "ATE0\n\r";			// Виключити ехо
-char AT_COMAND_ATE1[] = "ATE1\n\r";			// Включити ехо
-char AT_COMAND_TURN_OFF_ECHO[] = "ATV0\n\r";	// Тільки відповідь
-char AT_COMAND_TURN_ON_ECHO[] = "ATV1\n\r";	// Повна відповідь з ехо
-char AT_COMAND_АОН[] = "AT+CLIP=1\n\r";    // ??????
+char AT_COMAND[] = "AT\r\n"; 						// Must return OK
+char AT_COMAND_ATE0[] = "ATE0\r\n";					// Виключити ехо
+char AT_COMAND_ATE1[] = "ATE1\r\n";					// Включити ехо
+char AT_COMAND_TURN_OFF_ECHO[] = "ATV0\r\n";		// Тільки відповідь
+char AT_COMAND_TURN_ON_ECHO[] = "ATV1\r\n";			// Повна відповідь з ехо
+char AT_COMAND_AT_CLIP[] = "AT+CLIP=1\r\n";    		// Включення визначника вхідного номера
 //char AT_COMAND_
 
 // ЗВІНКИ
-char AT_COMAND_MAKE_CALL_ON_NUMBER[] = "ATD+ 380931482354;\n\r";     // Зробити звінок по номеру
-char AT_COMMAND_PICK_UP_PHONE[] = "ATA\n\r";			// Підняти трубку
-char AT_COMAND_END_CALL[] = "ATH0\n\r";				// Повісити трубку
+char AT_COMAND_AT_CMGF_0[] = "AT+CMGF=0\r\n";		// Виключити текстовий режим
+char AT_COMAND_MAKE_CALL_ON_NUMBER[] = "ATD+ 380931482354;\r\n";     // Зробити звінок по номеру
+char AT_COMMAND_PICK_UP_PHONE[] = "ATA\r\n";			// Підняти трубку
+char AT_COMAND_END_CALL[] = "ATH0\r\n";				// Повісити трубку
 //	char AT_COMAND_
 //	char AT_COMAND_
 //	char AT_COMAND_
@@ -132,11 +133,10 @@ char AT_COMAND_END_CALL[] = "ATH0\n\r";				// Повісити трубку
 // SMS
 //	char AT_COMAND_
 //	char AT_COMAND_
-//	char AT_COMAND_
-char AT_COMAND_AT_CLIP[] = "AT+CLIP=1\n\r"; 			// Включення визначника вхідного номера
-char AT_COMAND_AT_COPS[] = "AT+COPS?\n\r"; 		// Інформація про оператора. Вертає +COPS: 0,0,»MTS-RUS»  OK
-char AT_COMAND_AT_CPAS[] = "AT+CPAS\n\r";			// Інформація про стан модуля 0 – готов к работе, 	2 – неизвестно, 3 – входящий звонок, 4 – голосовое соединение
-char AT_COMAND_AT_CSQ[] = "AT+CSQ\n\r";				// Рівень сигналу
+char AT_COMAND_AT_CMGF_1[] = "AT+CMGF=1\r\n";		// Включити текстовий режим
+char AT_COMAND_AT_COPS[] = "AT+COPS?\r\n"; 			// Інформація про оператора. Вертає +COPS: 0,0,»MTS-RUS»  OK
+char AT_COMAND_AT_CPAS[] = "AT+CPAS\r\n";			// Інформація про стан модуля 0 – готов к работе, 	2 – неизвестно, 3 – входящий звонок, 4 – голосовое соединение
+char AT_COMAND_AT_CSQ[] = "AT+CSQ\r\n";				// Рівень сигналу
 
 // --------------------------------------------------------------------------------------
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -157,7 +157,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			{
 				int fff = 999; // ERROR for debug
 			}
-
 			memset(uart_rx_data, 0, sizeof(uart_rx_data));
 			HAL_UART_Receive_IT(&huart1, str, 1);
 		}
@@ -173,7 +172,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 //-------------------------------------------------------------------------------
 bool gsm_send_at_command(char *cmd, uint8_t size)
 {
+	// 1. Send command
 	HAL_UART_Transmit_IT(&huart1, cmd, size);
+
+	// 2. waiting response
+//	do
+//	{
+//
+//	}while();
 
 
 	return true;
@@ -184,24 +190,13 @@ bool init_gsm_module(void)
 	//HAL_UART_Transmit(&huart1, AT_COMAND, 10, 1000);
 
 	gsm_send_at_command(AT_COMAND, sizeof(AT_COMAND));     // TEST
-	gsm_send_at_command(AT_COMAND_ATE0, sizeof(AT_COMAND_ATE0));
+	osDelay(100);
+	gsm_send_at_command(AT_COMAND_ATE1, sizeof(AT_COMAND_ATE1));
+	osDelay(100);
 	gsm_send_at_command(AT_COMAND_AT_CLIP, sizeof(AT_COMAND_AT_CLIP));
-	gsm_send_at_command(AT_COMAND_АОН, sizeof(AT_COMAND_АОН));
-	gsm_send_at_command(AT_COMAND_TURN_OFF_ECHO, sizeof(AT_COMAND_TURN_OFF_ECHO));
-
-//	HAL_UART_Transmit_IT(&huart1, AT_COMAND, sizeof(AT_COMAND));
+	osDelay(100);
+//	gsm_send_at_command(AT_COMAND_TURN_OFF_ECHO, sizeof(AT_COMAND_TURN_OFF_ECHO));		// не буде відповіді від модуля "OK"
 //	osDelay(100);
-//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_ATE0, sizeof(AT_COMAND_ATE0));
-//	osDelay(100);
-//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_AT_CLIP, sizeof(AT_COMAND_AT_CLIP));
-//	osDelay(100);
-//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_АОН, sizeof(AT_COMAND_АОН));
-//	osDelay(100);
-//	HAL_UART_Transmit_IT(&huart1, AT_COMAND_TURN_OFF_ECHO, sizeof(AT_COMAND_TURN_OFF_ECHO));
-
-
-
-	// чикати тут поки модуль не ініціалізіється і не буде готовий до роботи
 
 
 	return true;
@@ -209,11 +204,100 @@ bool init_gsm_module(void)
 //-------------------------------------------------------------------------------
 void meke_call_to_me(void)
 {
-
+	// 1. Sist work woth call
+	gsm_send_at_command(AT_COMAND_AT_CMGF_0, sizeof(AT_COMAND_AT_CMGF_0));
+	osDelay(100);
+	// 2. Make a call
+	gsm_send_at_command(AT_COMAND_MAKE_CALL_ON_NUMBER, sizeof(AT_COMAND_MAKE_CALL_ON_NUMBER));
+	//HAL_UART_Transmit_IT(&huart1, AT_COMAND_MAKE_CALL_ON_NUMBER, sizeof(AT_COMAND_MAKE_CALL_ON_NUMBER));			// Work !
 }
 //-------------------------------------------------------------------------------
-void send_sme_to_me(void)
+void send_sms_to_me(void)
 {
+//	// 1. Init module for work with sms
+//	gsm_send_at_command(AT_COMAND_AT_CMGF_1, sizeof(AT_COMAND_AT_CMGF_1));
+//	osDelay(500);
+//
+//	// EXAMPLE  1 ////////////////////
+////	  mySerial.println("AT+CMGS=\"+ZZxxxxxxxxxx\""); // 1)
+////	  updateSerial();
+////	  mySerial.print("https://Shoolinlabs.com/tutorial"); // 2) text content
+////	  updateSerial();
+////	  mySerial.write(26); // 3)
+//	////////////////////////////
+//
+//	// EXAMPLE  2 ////////////////////
+//    char AT_SMS[60];
+//	uint8_t ctrl_z =26;
+//	sprintf(AT_SMS,"AT+CMGS=\"%s\"\r\n",PhoneNumber);
+//	Sim800_SendAtNotWaitResponse(AT_SMS);
+//	HAL_Delay(200);
+//	Sim800_SendAtNotWaitResponse((char*)SMS);
+//	HAL_UART_Transmit(&SIM800_UART,&ctrl_z,1,100);// CTRL_Z
+//	////////////////////////////
+//
+//
+	// 2. Send test SMS   "ATD+ 380931482354;\n\r";     '\0'
+
+
+	gsm_send_at_command(AT_COMAND_AT_CMGF_1, sizeof(AT_COMAND_AT_CMGF_1));
+
+
+	osDelay(200);
+//	uint8_t ctrl_z =26;
+	char PhoneNumber[] = "+380931482354";
+	char AT_SMS[60] = {0};
+	//memset(AT_SMS, '\0', sizeof(AT_SMS));
+	sprintf(AT_SMS,"AT+CMGS=\"%s\"\r\n", PhoneNumber);
+
+	//char str_sms_on_number[] = "AT+CMGS=\"+380931482354\"\r";
+	//char str_sms_on_number[] = "AT+CMGS=+380931482354\r\n";
+	uint8_t size_buf = 0;
+	do{
+		size_buf++;
+	}while(AT_SMS[size_buf] != '\0');
+//	for(size_buf = 0; AT_SMS[size_buf] != '\0'; size_buf++)
+//	{
+//
+//	}
+	gsm_send_at_command(AT_SMS, size_buf);
+
+	//sim800l.print("AT+CMGS=\"+380931482354\"\r");  //Your phone number don't forget to include your country code, example +212123456789"
+	osDelay(200);
+	char str_test_message[] = "TEST 1\r\n";
+	gsm_send_at_command(str_test_message, sizeof(str_test_message));
+	//sim800l.print("SIM800l is working");       //This is the text to send to the phone number, don't make it too long or you have to modify the SoftwareSerial buffer
+	osDelay(200);
+	char str_end_of_sms = (char)26;
+	//HAL_UART_Transmit_IT(&huart1, str_end_of_sms, 1);
+	gsm_send_at_command(&str_end_of_sms, 1);
+	//sim800l.print((char)26);// (required according to the datasheet)
+	osDelay(500);
+
+
+
+
+//	////////////////////////////////////////////////////
+//	  смс НАХУЙ НІКУДА НЕ ШЛЕТЬСЯ
+//	 2. Send test SMS   "ATD+ 380931482354;\n\r";
+//	osDelay(100);
+//	//char str_sms_on_number[] = "AT+CMGS=\"+380931482354\"\r";
+//	char str_sms_on_number[] = "AT+CMGS=+380931482354\r\n";
+//	gsm_send_at_command(str_sms_on_number, sizeof(str_sms_on_number));
+//	//sim800l.print("AT+CMGS=\"+380931482354\"\r");  //Your phone number don't forget to include your country code, example +212123456789"
+//	osDelay(100);
+//	char str_test_message[] = "TEST 1\r\n";
+//	gsm_send_at_command(str_test_message, sizeof(str_test_message));
+//	//sim800l.print("SIM800l is working");       //This is the text to send to the phone number, don't make it too long or you have to modify the SoftwareSerial buffer
+//	osDelay(100);
+//	char str_end_of_sms = (char)26;
+//	//HAL_UART_Transmit_IT(&huart1, str_end_of_sms, 1);
+//	gsm_send_at_command(str_end_of_sms, 1);
+//	//sim800l.print((char)26);// (required according to the datasheet)
+//	osDelay(500);
+	//////////////////////////////////////////////////////
+
+
 
 }
 //-------------------------------------------------------------------------------
@@ -488,14 +572,22 @@ void Start_gsm_task(void *argument)
   /* USER CODE BEGIN Start_gsm_task */
   /* Infinite loop */
 
-	osDelay(5000);
+	osDelay(7000);
 	init_gsm_module();
 	osDelay(1000);
+
+	// meke_call_to_me();			// Test Work fine
+	send_sms_to_me();
 
   for(;;)
   {
 
-	  gsm_send_at_command(AT_COMAND, sizeof(AT_COMAND));     // TEST
+	  //gsm_send_at_command(AT_COMAND_AT_CPAS, sizeof(AT_COMAND_AT_CPAS));     // TEST
+	  //gsm_send_at_command(AT_COMAND_AT_CMGF_1, sizeof(AT_COMAND_AT_CMGF_1));
+	  // gsm_send_at_command(AT_COMAND_AT_CMGF_1, sizeof(AT_COMAND_AT_CMGF_1));
+	  // gsm_send_at_command(AT_COMAND, sizeof(AT_COMAND));     // TEST
+
+	  // init_gsm_module();
 	  osDelay(1000);
 
 
@@ -528,12 +620,12 @@ void StartParsingGSMCom(void *argument)
 		  {
 			  int hhdd = 888;
 		  }
-
-		  if((strstr(tx_gsm_data, "+380931482354")) != NULL)  		// Works
-		  {
-			  int hhdddd = 888;
-			  //
-		  }
+		  // Пфдняти трубку якщо я звоню
+//
+//		  if((strstr(tx_gsm_data, "+380931482354")) != NULL)  		// Works
+//		  {
+//			  gsm_send_at_command(AT_COMMAND_PICK_UP_PHONE, sizeof(AT_COMMAND_PICK_UP_PHONE));
+//		  }
 
 
 	  }
